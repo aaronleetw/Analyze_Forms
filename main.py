@@ -2,6 +2,8 @@ from Google import Create_Service
 import csv
 from datetime import datetime
 import os
+from time import sleep
+from tqdm import tqdm
 
 CLIENT_SECRET_FILE = 'client_secret.json'
 API_SERVICE_NAME = 'sheets'
@@ -59,6 +61,7 @@ for cla in range(2):
 
     for id in SPREADSHEET_IDS:
         response = ""
+        afternoon = False
         try:
             response = service.spreadsheets().values().get(
                 spreadsheetId=id[1],
@@ -84,16 +87,31 @@ for cla in range(2):
                     try:
                         submitDateTime = datetime.strptime(
                             r[0], '%Y/%m/%d 下午 %H:%M:%S')
+                        afternoon = True
                     except:
                         try:
                             submitDateTime = datetime.strptime(
                                 r[0], '%Y/%m/%d 上午 %H:%M:%S')
                         except:
-                            print("{0:2d}".format(int(id[0])), end=' ')
-                            print('raised a TIME error(' + str(id[1]) + ')')
+                            try:
+                                submitDateTime = datetime.strptime(
+                                    r[0], '%Y-%m-%d 下午%H:%M:%S')
+                                afternoon = True
+                            except:
+                                try:
+                                    submitDateTime = datetime.strptime(
+                                        r[0], '%Y-%m-%d 上午%H:%M:%S')
+                                except:
+                                    print("{0:2d}".format(int(id[0])), end=' ')
+                                    print(
+                                        'raised a TIME error(' + str(id[1]) + ')')
+            if (afternoon == True):
+                submitDateTime.replace(hour=submitDateTime.hour + 12)
             r[0] = submitDateTime.strftime("%m/%d/%Y %H:%M:%S")
-            if not (submitDateTime.day >= 22 and submitDateTime.day <= 24 and
-                    submitDateTime.year == 2020 and submitDateTime.month == 6):
+            if not (((submitDateTime.day == 22 and submitDateTime.hour >= 12) or
+                    submitDateTime.day == 23 or
+                    (submitDateTime.day == 24 and submitDateTime.hour < 12)) and
+                    submitDateTime.year == 2021 and submitDateTime.month == 6):
                 with open(ILLEGAL_TARGET, 'a', encoding='UTF8', newline='') as f:
                     csv.writer(f).writerow(r)
                 continue
@@ -118,3 +136,6 @@ for cla in range(2):
         with open(ANALYZED_AUTHOR_TARGET, 'a', encoding='UTF8', newline='') as f:
             csv.writer(f).writerow(s)
     print(".....DONE\n")
+    if (cla != 1):
+        for xu in tqdm(range(20)):
+            sleep(3)
